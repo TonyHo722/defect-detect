@@ -107,8 +107,6 @@ DD_ERROR_LOG create_pipeline (AppData *data);
 
 DD_ERROR_LOG link_pipeline (AppData *data);
 
-add_compiler_error_here
-
 void
 signal_handler (gint sig) {
      signal(sig, SIG_IGN);
