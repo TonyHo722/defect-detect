@@ -102,6 +102,8 @@ int32_t xlnx_kernel_start(IVASKernel *handle, int start, IVASFrame *input[MAX_NU
         return FALSE;
     }
 
+    LOG_MESSAGE (LOG_LEVEL_INFO, kernel_priv->log_level, "Tony_debug");
+
     if (NULL == infer_meta->prediction) {
         LOG_MESSAGE (LOG_LEVEL_INFO, kernel_priv->log_level, "Allocating prediction");
         infer_meta->prediction = gst_inference_prediction_new ();
