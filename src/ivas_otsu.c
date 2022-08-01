@@ -74,6 +74,8 @@ int32_t xlnx_kernel_start(IVASKernel *handle, int start, IVASFrame *input[MAX_NU
     IVASFrame *outframe = output[0];
     kernel_priv = (PreProcessingKernelPriv *)handle->kernel_priv;
 
+    LOG_MESSAGE (LOG_LEVEL_INFO, kernel_priv->log_level, "MAX_NUM_OBJECT = %d", MAX_NUM_OBJECT);
+
     ivas_register_write(handle, &(input[0]->paddr[0]), sizeof(uint64_t),         0x10);      /* Input buffer */
     ivas_register_write(handle, &(input[0]->props.height), sizeof(uint32_t),     0x28);      /* Rows */
     ivas_register_write(handle, &(input[0]->props.width), sizeof(uint32_t),      0x30);      /* Columns */
@@ -95,8 +97,19 @@ int32_t xlnx_kernel_start(IVASKernel *handle, int start, IVASFrame *input[MAX_NU
     }
     thr =  kernel_priv->mem->vaddr[0]; 
 
+    LOG_MESSAGE (LOG_LEVEL_INFO, kernel_priv->log_level, "be outframe->app_priv = %p", outframe->app_priv);
+    LOG_MESSAGE (LOG_LEVEL_INFO, kernel_priv->log_level, "be &outframe->app_priv = %p", &outframe->app_priv);
+    LOG_MESSAGE (LOG_LEVEL_INFO, kernel_priv->log_level, "infer_meta = %p", infer_meta);
+    LOG_MESSAGE (LOG_LEVEL_INFO, kernel_priv->log_level, "&infer_meta = %p", &infer_meta);
+
     infer_meta = (GstInferenceMeta *) gst_buffer_add_meta ((GstBuffer *)outframe->app_priv,
                                                      gst_inference_meta_get_info (), NULL);
+
+    LOG_MESSAGE (LOG_LEVEL_INFO, kernel_priv->log_level, "af outframe->app_priv = %p", outframe->app_priv);
+    LOG_MESSAGE (LOG_LEVEL_INFO, kernel_priv->log_level, "af &outframe->app_priv = %p", &outframe->app_priv);
+    LOG_MESSAGE (LOG_LEVEL_INFO, kernel_priv->log_level, "infer_meta = %p", infer_meta);
+    LOG_MESSAGE (LOG_LEVEL_INFO, kernel_priv->log_level, "&infer_meta = %p", &infer_meta);
+
     if (infer_meta == NULL) {
         LOG_MESSAGE (LOG_LEVEL_ERROR, kernel_priv->log_level, "Meta data is not available");
         return FALSE;
@@ -113,11 +126,50 @@ int32_t xlnx_kernel_start(IVASKernel *handle, int start, IVASFrame *input[MAX_NU
 
     GstInferencePrediction *predict;
     GstInferenceClassification *a = NULL;
+    
+    LOG_MESSAGE (LOG_LEVEL_INFO, kernel_priv->log_level, "predict = %p", predict);
+    LOG_MESSAGE (LOG_LEVEL_INFO, kernel_priv->log_level, "&predict = %p", &predict);
+
+    LOG_MESSAGE (LOG_LEVEL_INFO, kernel_priv->log_level, "execution gst_inference_prediction_new");
     predict = gst_inference_prediction_new ();
+
+    LOG_MESSAGE (LOG_LEVEL_INFO, kernel_priv->log_level, "predict = %p", predict);
+    LOG_MESSAGE (LOG_LEVEL_INFO, kernel_priv->log_level, "&predict = %p", &predict);
+    LOG_MESSAGE (LOG_LEVEL_INFO, kernel_priv->log_level, "predict->predictions = %p", predict->predictions);
+    if (predict->predictions) {
+    	LOG_MESSAGE (LOG_LEVEL_INFO, kernel_priv->log_level, "predict->predictions->data = %p", predict->predictions->data);
+    	LOG_MESSAGE (LOG_LEVEL_INFO, kernel_priv->log_level, "predict->predictions->next = %p", predict->predictions->next);
+    	LOG_MESSAGE (LOG_LEVEL_INFO, kernel_priv->log_level, "predict->predictions->prev = %p", predict->predictions->prev);
+    	LOG_MESSAGE (LOG_LEVEL_INFO, kernel_priv->log_level, "predict->predictions->parent = %p", predict->predictions->parent);
+    	LOG_MESSAGE (LOG_LEVEL_INFO, kernel_priv->log_level, "predict->predictions->children = %p", predict->predictions->children);
+    	LOG_MESSAGE (LOG_LEVEL_INFO, kernel_priv->log_level, "predict->classifications = %p", predict->classifications);
+    }
+
+    LOG_MESSAGE (LOG_LEVEL_INFO, kernel_priv->log_level, "exectuin gst_inference_classification_new_fullp");
 
     a = gst_inference_classification_new_full (-1, 0.0, "OTSU THRSHOLD", 0, NULL, NULL, NULL);
     predict->reserved_1 = (void *)thr;
+
     gst_inference_prediction_append_classification (predict, a);
+
+    if (predict->predictions) {
+    	LOG_MESSAGE (LOG_LEVEL_INFO, kernel_priv->log_level, "predict->predictions->data = %p", predict->predictions->data);
+    	LOG_MESSAGE (LOG_LEVEL_INFO, kernel_priv->log_level, "predict->predictions->next = %p", predict->predictions->next);
+    	LOG_MESSAGE (LOG_LEVEL_INFO, kernel_priv->log_level, "predict->predictions->prev = %p", predict->predictions->prev);
+    	LOG_MESSAGE (LOG_LEVEL_INFO, kernel_priv->log_level, "predict->predictions->parent = %p", predict->predictions->parent);
+    	LOG_MESSAGE (LOG_LEVEL_INFO, kernel_priv->log_level, "predict->predictions->children = %p", predict->predictions->children);
+    	LOG_MESSAGE (LOG_LEVEL_INFO, kernel_priv->log_level, "predict->classifications = %p", predict->classifications);
+	if (predict->predictions->children) {
+		GNode *child = predict->predictions->children;
+    		LOG_MESSAGE (LOG_LEVEL_INFO, kernel_priv->log_level, "child->data = %p", child->data);
+	    	LOG_MESSAGE (LOG_LEVEL_INFO, kernel_priv->log_level, "child->next = %p", child->next);
+    		LOG_MESSAGE (LOG_LEVEL_INFO, kernel_priv->log_level, "child->prev = %p", child->prev);
+	    	LOG_MESSAGE (LOG_LEVEL_INFO, kernel_priv->log_level, "child->parent = %p", child->parent);
+    		LOG_MESSAGE (LOG_LEVEL_INFO, kernel_priv->log_level, "child->children = %p", child->children);
+
+	}
+
+    }
 
     gst_inference_prediction_append (infer_meta->prediction, predict);
 

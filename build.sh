@@ -24,6 +24,8 @@
 sdkdir=${1}
 conf=${2:-Release}
 
+echo ${sdkdir}
+echo "debug"
 unset LD_LIBRARY_PATH;
 source ${sdkdir}/environment-setup-*;
 mkdir -p build

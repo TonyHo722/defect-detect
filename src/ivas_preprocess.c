@@ -99,6 +99,14 @@ int32_t xlnx_kernel_start(IVASKernel *handle, int start, IVASFrame *input[MAX_NU
     for (GSList *child_predictions = tmp; child_predictions; child_predictions = g_slist_next(child_predictions))
     {
         GstInferencePrediction *child = (GstInferencePrediction *)child_predictions->data;
+
+        LOG_MESSAGE (LOG_LEVEL_INFO, kernel_priv->log_level, "child = %p", child);
+        LOG_MESSAGE (LOG_LEVEL_INFO, kernel_priv->log_level, "child->predictions->data = %p", child->predictions->data);
+        LOG_MESSAGE (LOG_LEVEL_INFO, kernel_priv->log_level, "child->predictions->next = %p", child->predictions->next);
+        LOG_MESSAGE (LOG_LEVEL_INFO, kernel_priv->log_level, "child->predictions->prev = %p", child->predictions->prev);
+        LOG_MESSAGE (LOG_LEVEL_INFO, kernel_priv->log_level, "child->predictions->parent = %p", child->predictions->parent);
+        LOG_MESSAGE (LOG_LEVEL_INFO, kernel_priv->log_level, "child->predictions->children = %p", child->predictions->children);
+
         thr = (uint32_t *)child->reserved_1;
     }
 

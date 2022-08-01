@@ -7,7 +7,7 @@
       "kernel-name": "preprocess_accel:preprocess_accel_1",
       "library-name": "libivas_preprocess.so",
       "config": {
-        "debug_level" : 1,
+        "debug_level" : 2,
         "max_value": 255
       }
     }

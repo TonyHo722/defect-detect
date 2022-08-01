@@ -7,7 +7,7 @@
       "kernel-name": "gaussian_otsu_accel:gaussian_otsu_accel_1",
       "library-name": "libivas_otsu.so",
       "config": {
-        "debug_level" : 1
+        "debug_level" : 2
       }
     }
   ]
