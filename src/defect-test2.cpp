@@ -27,8 +27,8 @@
 
 using namespace std;
 
-GST_DEBUG_CATEGORY (defectdetect_app);
-#define GST_CAT_DEFAULT defectdetect_app
+GST_DEBUG_CATEGORY (defectdetect_Stage1_app);
+#define GST_CAT_DEFAULT defectdetect_Stage1_app
 
 #define PRE_PROCESS_JSON_FILE        "preprocess-accelarator.json"
 #define OTSU_ACC_JSON_FILE           "otsu-accelarator.json"
@@ -592,8 +592,8 @@ Stage1 (int argc, char **argv) {
     GOptionContext *optctx;
     GError *error = NULL;
 
-    GST_DEBUG ("argc is %d", argc);
-    GST_DEBUG ("argv is %p", argv);
+    printf ("argc is %d\n", argc);
+    printf ("argv is %p\n", argv);
 
     memset (&data, 0, sizeof(AppData));
 
@@ -739,8 +739,8 @@ main (int argc, char **argv) {
     gint ret = DD_SUCCESS;
 
 
-    GST_DEBUG ("argc is %d", argc);
-    GST_DEBUG ("argv is %p", argv);
+    printf ("argc is %d\n", argc);
+    printf ("argv is %p\n", argv);
 
 	ret = Stage1(argc, argv);
 
