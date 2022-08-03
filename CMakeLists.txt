@@ -61,6 +61,13 @@ target_link_libraries(defect-detect
   gstreamer-1.0 gobject-2.0 glib-2.0 gstvideo-1.0 )
 install(TARGETS defect-detect DESTINATION ${INSTALL_PATH}/bin)
 
+add_executable(defect-test src/test.cpp)
+target_include_directories(defect-test PRIVATE ${GSTREAMER_INCLUDE_DIRS})
+target_link_libraries(defect-test
+  gstreamer-1.0 gobject-2.0 glib-2.0 gstvideo-1.0 )
+install(TARGETS defect-test DESTINATION ${INSTALL_PATH}/bin)
+
+
 install(FILES
     README
     DESTINATION ${INSTALL_PATH}/
