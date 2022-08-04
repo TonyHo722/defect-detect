@@ -17,6 +17,8 @@
 #include <ivas/ivaslogs.h>
 #include <ivas/ivas_kernel.h>
 #include <gst/ivas/gstinferencemeta.h>
+#include <stdio.h>
+#include <stdlib.h>
 
 typedef struct _kern_priv
 {
@@ -95,7 +97,23 @@ int32_t xlnx_kernel_start(IVASKernel *handle, int start, IVASFrame *input[MAX_NU
         LOG_MESSAGE (LOG_LEVEL_ERROR, kernel_priv->log_level, "Failed to receive response from kernel");
         return FALSE;
     }
+
+
     thr =  kernel_priv->mem->vaddr[0]; 
+
+    {
+	    FILE *demo;
+
+    		LOG_MESSAGE (LOG_LEVEL_INFO, kernel_priv->log_level, "fopen checkpoint 1");
+	    demo=fopen("demo_file.txt", "w+");
+    		LOG_MESSAGE (LOG_LEVEL_INFO, kernel_priv->log_level, "fopen checkpoint 2");
+	    fprintf(demo, "%s %s %s", "Welcome",      "to", "GeeksforGeeks");
+    		LOG_MESSAGE (LOG_LEVEL_INFO, kernel_priv->log_level, "fopen checkpoint 3");
+	    fclose(demo);
+    		LOG_MESSAGE (LOG_LEVEL_INFO, kernel_priv->log_level, "fopen checkpoint 4");
+
+
+    }
 
     LOG_MESSAGE (LOG_LEVEL_INFO, kernel_priv->log_level, "be outframe->app_priv = %p", outframe->app_priv);
     LOG_MESSAGE (LOG_LEVEL_INFO, kernel_priv->log_level, "be &outframe->app_priv = %p", &outframe->app_priv);

@@ -489,8 +489,8 @@ link_pipeline_Stage2 (AppData *data) {
     gchar *name1, *name2;
     gint ret = DD_SUCCESS;
 	
-            if (!gst_element_link_many(data->src, data->rawvideoparse, data->videorate_raw, data->capsfilter_raw, \
-                                   data->perf_raw, data->sink_display, NULL)) {
+            if (!gst_element_link_many(data->src, data->rawvideoparse, \
+                                   data->sink_display, NULL)) {
                 GST_ERROR ("Error linking for src --> rawvideoparse --> videorate --> capfilter --> perf --> sink");
                 return DD_ERROR_PIPELINE_LINKING_FAIL;
             }
