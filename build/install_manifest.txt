@@ -1,0 +1,17 @@
+/opt/xilinx/lib/libivas_cca.so
+/opt/xilinx/lib/libivas_otsu.so
+/opt/xilinx/lib/libivas_text2overlay.so
+/opt/xilinx/lib/libivas_preprocess.so
+/opt/xilinx/bin/defect-detect
+/opt/xilinx/bin/defect-test
+/opt/xilinx/bin/defect-test2
+/opt/xilinx/README_DEFECT_DETECT
+/opt/xilinx/bin/defect-detect-install.py
+/opt/xilinx/bin/ar0144-sensor-calib.sh
+/opt/xilinx/share/ivas/defect-detect/otsu-accelarator.json
+/opt/xilinx/share/ivas/defect-detect/text2overlay.json
+/opt/xilinx/share/ivas/defect-detect/cca-accelarator.json
+/opt/xilinx/share/ivas/defect-detect/preprocess-accelarator.json
+/opt/xilinx/share/notebooks/defect-detect/LICENSE
+/opt/xilinx/share/notebooks/defect-detect/images/xilinx_logo.png
+/opt/xilinx/share/notebooks/defect-detect/defect-detect.ipynb

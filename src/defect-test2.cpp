@@ -476,6 +476,30 @@ link_pipeline (AppData *data) {
 }
 
 /** @brief
+ *  This function is to link all the elements required to run defect
+ *  detect use case.
+ *
+ *  Link live playback pipeline.
+ *
+ *  @param data is the application structure pointer.
+ *  @return Error code.
+ */
+DD_ERROR_LOG
+link_pipeline_Stage2 (AppData *data) {
+    gchar *name1, *name2;
+    gint ret = DD_SUCCESS;
+	
+            if (!gst_element_link_many(data->src, data->rawvideoparse, data->videorate_raw, data->capsfilter_raw, \
+                                   data->perf_raw, data->sink_display, NULL)) {
+                GST_ERROR ("Error linking for src --> rawvideoparse --> videorate --> capfilter --> perf --> sink");
+                return DD_ERROR_PIPELINE_LINKING_FAIL;
+            }
+            GST_DEBUG ("Linked for src --> rawvideoparse --> videorate --> capfilter --> perf --> sink successfully");
+
+    return DD_SUCCESS;
+}
+
+/** @brief
  *  This function is to create a pipeline required to run defect
  *  detect use case.
  *
@@ -760,6 +784,181 @@ CLOSE:
 }
 
 gint
+Stage2 (int argc, char **argv) {
+    AppData data;
+    GstBus *bus;
+    gint ret = DD_SUCCESS;
+    guint bus_watch_id;
+    GOptionContext *optctx;
+    GError *error = NULL;
+
+    printf ("argc is %d\n", argc);
+    printf ("argv is %p\n", argv);
+
+    memset (&data, 0, sizeof(AppData));
+
+    printf ("check point 1\n");
+
+    //if( !gst_init_flag ) {
+    		printf ("check point 2\n");
+	    gst_init(&argc, &argv);
+	    gst_init_flag = TRUE;
+    //}
+
+    printf ("check point 3\n");
+    signal(SIGINT, signal_handler);
+    printf ("check point 4\n");
+
+    GST_DEBUG_CATEGORY_INIT (defectdetect_Stage1_app, "defectdetect-Stage1-app", 0, "defect detection Stage1 app");
+    printf ("check point 5\n");
+    optctx = g_option_context_new ("- Application Stage1 to detect the defect of Mango on Xilinx board");
+    printf ("check point 6\n");
+    g_option_context_add_main_entries (optctx, entries, NULL);
+    printf ("check point 7\n");
+    g_option_context_add_group (optctx, gst_init_get_option_group ());
+    printf ("check point 8\n");
+    if (!g_option_context_parse (optctx, &argc, &argv, &error)) {
+    	printf ("check point 8-1\n");
+        g_printerr ("Error parsing options: %s\n", error->message);
+    	printf ("check point 8-2\n");
+        g_option_context_free (optctx);
+    	printf ("check point 8-3\n");
+        g_clear_error (&error);
+    	printf ("check point 8-4\n");
+        return -1;
+    }
+    printf ("check point 9\n");
+    g_option_context_free (optctx);
+
+    printf ("check point 10\n");
+    if (in_file) {
+        file_playback = TRUE;
+    }
+
+    if (final_out && raw_out && preprocess_out) {
+        file_dump = true;
+    }
+
+    if (in_file) {
+        GST_DEBUG ("In file is %s", in_file);
+    }
+
+    printf ("check point 20\n");
+    GST_DEBUG ("Width is %d", width);
+    GST_DEBUG ("height is %d", height);
+    GST_DEBUG ("framerate is %d", framerate);
+    GST_DEBUG ("file playback mode is %s", file_playback ? "TRUE" : "FALSE");
+    GST_DEBUG ("file dump is %s", file_dump ? "TRUE" : "FALSE");
+    GST_DEBUG ("demo mode is %s", demo_mode ? "On" : "Off");
+
+    if (config_path)
+        GST_DEBUG ("config path is %s", config_path);
+
+    if (dev_node.c_str())
+        GST_DEBUG ("media node is %s", dev_node.c_str());
+
+    if (width > MAX_WIDTH || height > MAX_HEIGHT) {
+        ret = DD_ERROR_RESOLUTION_NOT_SUPPORTED;
+        g_printerr ("Exiting the app with an error: %s\n", error_to_string (ret));
+        return ret;
+    }
+
+    if (access("/dev/dri/by-path/platform-b0010000.v_mix-card", F_OK) != 0) {
+        g_printerr("ERROR: Mixer device is not ready.\n%s", msg_firmware);
+        return -1;
+    } else {
+        exec("echo | modetest -D B0010000.v_mix -s 52@40:3840x2160@NV16");
+    }
+
+    if (!file_playback && (check_mipi_src() != 0)) {
+        g_printerr ("MIPI media node not found, please check the connection of camera\n");
+        return -1;
+    }
+    printf ("check point 30\n");
+    if (!file_playback ) {
+        std::string script_caller;
+        GST_DEBUG ("Calling default sensor calibration script");
+        script_caller = "echo | ar0144-sensor-calib.sh " + dev_node;
+        exec(script_caller.c_str());
+    }
+    ret = create_pipeline (&data);
+    if (ret != DD_SUCCESS) {
+        g_printerr ("Exiting the app with an error: %s\n", error_to_string (ret));
+        return ret;
+    }
+
+    ret = link_pipeline_Stage2 (&data);
+    if (ret != DD_SUCCESS) {
+        g_printerr ("Exiting the app with an error: %s\n", error_to_string (ret));
+        return ret;
+    }
+
+    ret = set_pipeline_config (&data);
+    if (ret != DD_SUCCESS) {
+        g_printerr ("Exiting the app with an error: %s\n", error_to_string (ret));
+        return ret;
+    }
+    printf ("check point 40\n");
+
+    /* we add a message handler */
+    bus = gst_pipeline_get_bus (GST_PIPELINE (data.pipeline));
+    bus_watch_id = gst_bus_add_watch (bus, (GstBusFunc)(message_cb), &data);
+    gst_object_unref (bus);
+
+    if (!file_playback) {
+        g_signal_connect (data.src, "pad-added", G_CALLBACK (pad_added_cb), &data);
+    }
+    GST_DEBUG ("Triggering play command");
+    if (GST_STATE_CHANGE_FAILURE == gst_element_set_state (data.pipeline, GST_STATE_PLAYING)) {
+        g_printerr ("state change to Play failed\n");
+        goto CLOSE;
+    }
+    GST_DEBUG ("waiting for the loop");
+    loop = g_main_loop_new (NULL, FALSE);
+    g_main_loop_run (loop);
+    printf ("check point 50\n");
+CLOSE:
+    gst_element_set_state(data.pipeline, GST_STATE_NULL);
+    if (data.pipeline) {
+        if (data.pad_raw) {
+            GST_DEBUG ("releasing pad");
+            gst_element_release_request_pad (data.tee_raw, data.pad_raw);
+            gst_object_unref (data.pad_raw);
+        }
+        if (data.pad_raw2) {
+            GST_DEBUG ("releasing pad");
+            gst_element_release_request_pad (data.tee_raw, data.pad_raw2);
+            gst_object_unref (data.pad_raw2);
+        }
+        if (data.pad_preprocess) {
+            GST_DEBUG ("releasing pad");
+            gst_element_release_request_pad (data.tee_preprocess, data.pad_preprocess);
+            gst_object_unref (data.pad_preprocess);
+        }
+        if (data.pad_preprocess2) {
+            GST_DEBUG ("releasing pad");
+            gst_element_release_request_pad (data.tee_preprocess, data.pad_preprocess2);
+            gst_object_unref (data.pad_preprocess2);
+        }
+        gst_object_unref (GST_OBJECT (data.pipeline));
+        data.pipeline = NULL;
+    }
+    printf ("check point 60\n");
+    GST_DEBUG ("Removing bus");
+    g_source_remove (bus_watch_id);
+
+    if (in_file)
+        g_free (in_file);
+    if (final_out)
+        g_free (final_out);
+    if (raw_out)
+        g_free (raw_out);
+    if (preprocess_out)
+        g_free (preprocess_out);
+    return ret;
+}
+
+gint
 main (int argc, char **argv) {
     gint ret = DD_SUCCESS;
 	char argv_save[20][80];
@@ -777,15 +976,19 @@ main (int argc, char **argv) {
 
 	}
 	ret = Stage1(argc, argv_p);
+	
+	if ( ret )	
+		//exit when Error
+		return ret;	
 
-    	printf ("2nd Stage1\n");
+    	printf ("2nd Stage2\n");
 	for( int i=0; i< argc; i++) {
 		printf("argv[%d] = %s\n", i, argv[i]);
 		strcpy(argv_save[i], argv[i]);
 		printf("argv_save[%d] = %s\n", i, argv_save[i]);
 		argv_p[i] = argv_save[i];
 	}
-	ret = Stage1(argc, argv_p);
+	ret = Stage2(argc, argv_p);
 
 	return ret;
 }
@@ -825,3 +1028,4 @@ exit:
     /* Unreference the sink pad */
     gst_object_unref (sink_pad);
 }
+

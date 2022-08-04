@@ -1,0 +1,15 @@
+/home/willychiang/tony-workspace/defect-detect/build/CMakeFiles/install/strip.dir
+/home/willychiang/tony-workspace/defect-detect/build/CMakeFiles/install/local.dir
+/home/willychiang/tony-workspace/defect-detect/build/CMakeFiles/ivas_cca.dir
+/home/willychiang/tony-workspace/defect-detect/build/CMakeFiles/ivas_text2overlay.dir
+/home/willychiang/tony-workspace/defect-detect/build/CMakeFiles/ivas_preprocess.dir
+/home/willychiang/tony-workspace/defect-detect/build/CMakeFiles/defect-detect.dir
+/home/willychiang/tony-workspace/defect-detect/build/CMakeFiles/defect-test2.dir
+/home/willychiang/tony-workspace/defect-detect/build/CMakeFiles/package.dir
+/home/willychiang/tony-workspace/defect-detect/build/CMakeFiles/edit_cache.dir
+/home/willychiang/tony-workspace/defect-detect/build/CMakeFiles/rebuild_cache.dir
+/home/willychiang/tony-workspace/defect-detect/build/CMakeFiles/list_install_components.dir
+/home/willychiang/tony-workspace/defect-detect/build/CMakeFiles/ivas_otsu.dir
+/home/willychiang/tony-workspace/defect-detect/build/CMakeFiles/install.dir
+/home/willychiang/tony-workspace/defect-detect/build/CMakeFiles/defect-test.dir
+/home/willychiang/tony-workspace/defect-detect/build/CMakeFiles/package_source.dir
