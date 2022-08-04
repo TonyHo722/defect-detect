@@ -71,6 +71,7 @@ GMainLoop *loop;
 gboolean file_playback = FALSE;
 gboolean file_dump = FALSE;
 gboolean demo_mode = FALSE;
+gboolean gst_init_flag = FALSE;
 static gchar* in_file = NULL;
 static gchar* config_path  = (gchar *)"/opt/xilinx/share/ivas/defect-detect/";
 static gchar *msg_firmware = (gchar *)"Load the HW accelerator firmware first. Use command: xmutil loadapp kv260-defect-detect\n";
@@ -597,21 +598,40 @@ Stage1 (int argc, char **argv) {
 
     memset (&data, 0, sizeof(AppData));
 
-    gst_init(&argc, &argv);
+    printf ("check point 1\n");
+
+    //if( !gst_init_flag ) {
+    		printf ("check point 2\n");
+	    gst_init(&argc, &argv);
+	    gst_init_flag = TRUE;
+    //}
+
+    printf ("check point 3\n");
     signal(SIGINT, signal_handler);
+    printf ("check point 4\n");
 
     GST_DEBUG_CATEGORY_INIT (defectdetect_Stage1_app, "defectdetect-Stage1-app", 0, "defect detection Stage1 app");
+    printf ("check point 5\n");
     optctx = g_option_context_new ("- Application Stage1 to detect the defect of Mango on Xilinx board");
+    printf ("check point 6\n");
     g_option_context_add_main_entries (optctx, entries, NULL);
+    printf ("check point 7\n");
     g_option_context_add_group (optctx, gst_init_get_option_group ());
+    printf ("check point 8\n");
     if (!g_option_context_parse (optctx, &argc, &argv, &error)) {
+    	printf ("check point 8-1\n");
         g_printerr ("Error parsing options: %s\n", error->message);
+    	printf ("check point 8-2\n");
         g_option_context_free (optctx);
+    	printf ("check point 8-3\n");
         g_clear_error (&error);
+    	printf ("check point 8-4\n");
         return -1;
     }
+    printf ("check point 9\n");
     g_option_context_free (optctx);
 
+    printf ("check point 10\n");
     if (in_file) {
         file_playback = TRUE;
     }
@@ -624,6 +644,7 @@ Stage1 (int argc, char **argv) {
         GST_DEBUG ("In file is %s", in_file);
     }
 
+    printf ("check point 20\n");
     GST_DEBUG ("Width is %d", width);
     GST_DEBUG ("height is %d", height);
     GST_DEBUG ("framerate is %d", framerate);
@@ -654,6 +675,7 @@ Stage1 (int argc, char **argv) {
         g_printerr ("MIPI media node not found, please check the connection of camera\n");
         return -1;
     }
+    printf ("check point 30\n");
     if (!file_playback ) {
         std::string script_caller;
         GST_DEBUG ("Calling default sensor calibration script");
@@ -677,6 +699,7 @@ Stage1 (int argc, char **argv) {
         g_printerr ("Exiting the app with an error: %s\n", error_to_string (ret));
         return ret;
     }
+    printf ("check point 40\n");
 
     /* we add a message handler */
     bus = gst_pipeline_get_bus (GST_PIPELINE (data.pipeline));
@@ -694,6 +717,7 @@ Stage1 (int argc, char **argv) {
     GST_DEBUG ("waiting for the loop");
     loop = g_main_loop_new (NULL, FALSE);
     g_main_loop_run (loop);
+    printf ("check point 50\n");
 CLOSE:
     gst_element_set_state(data.pipeline, GST_STATE_NULL);
     if (data.pipeline) {
@@ -720,6 +744,7 @@ CLOSE:
         gst_object_unref (GST_OBJECT (data.pipeline));
         data.pipeline = NULL;
     }
+    printf ("check point 60\n");
     GST_DEBUG ("Removing bus");
     g_source_remove (bus_watch_id);
 
@@ -737,12 +762,30 @@ CLOSE:
 gint
 main (int argc, char **argv) {
     gint ret = DD_SUCCESS;
-
+	char argv_save[20][80];
+	char *argv_p[20];
 
     printf ("argc is %d\n", argc);
     printf ("argv is %p\n", argv);
 
-	ret = Stage1(argc, argv);
+	printf ("1st Stage1\n");
+	for( int i=0; i< argc; i++) {
+		printf("argv[%d] = %s\n", i, argv[i]);
+		strcpy(argv_save[i], argv[i]);
+		printf("argv_save[%d] = %s\n", i, argv_save[i]);
+		argv_p[i] = argv_save[i];
+
+	}
+	ret = Stage1(argc, argv_p);
+
+    	printf ("2nd Stage1\n");
+	for( int i=0; i< argc; i++) {
+		printf("argv[%d] = %s\n", i, argv[i]);
+		strcpy(argv_save[i], argv[i]);
+		printf("argv_save[%d] = %s\n", i, argv_save[i]);
+		argv_p[i] = argv_save[i];
+	}
+	ret = Stage1(argc, argv_p);
 
 	return ret;
 }
