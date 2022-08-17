@@ -19,6 +19,10 @@
 #include <ivas/ivas_kernel.h>
 #include <gst/ivas/gstinferencemeta.h>
 
+//Willy debug - s
+#include <list>
+//Willy debug - e
+
 int log_level;
 using namespace cv;
 using namespace std;
@@ -71,6 +75,164 @@ struct ivas_xoverlaypriv
   unsigned int total_defect;
   struct overlayframe_info frameinfo;
 };
+
+
+//Willy debug - s
+
+typedef struct
+
+{
+	int x;
+	int y;
+	int width;
+	int height;
+} icObject;
+
+typedef struct
+
+{
+	int x;
+	int y;
+	int width;
+	int height;
+	int size;
+	int centroids_x;
+	int centroids_y;
+} ccObject;
+
+
+
+// comparison, not case sensitive.
+bool list_compare(const ccObject& first, const ccObject& second)
+{
+	return (first.size < second.size);
+}
+
+
+int DetermineDirection(Mat img)
+{
+	int width = img.size().width;
+	int height = img.size().height;
+
+	Mat img_binary_ic;
+	threshold(img, img_binary_ic, 0, 255, THRESH_BINARY | THRESH_OTSU);
+
+	Mat element = getStructuringElement(MORPH_RECT, Size(3, 3));
+
+	Mat img_dilate;
+	dilate(img_binary_ic, img_dilate, element, Point(-1, -1), 4);
+
+	Mat img_target = img_dilate;
+
+	//imshow("img_ic", img_target);
+	Mat labels, stats, centroids;
+
+	int nccomps = cv::connectedComponentsWithStats(
+		img_target,
+		labels,
+		stats,
+		centroids
+	);
+
+
+
+
+	int cc_size, cc_centroids_x, cc_centroids_y, cc_x, cc_y, cc_width, cc_height;
+	double ratio, pxielpercent;
+
+	std::list<ccObject> ccObjectList;
+
+	ccObject ccObjecttmp;
+
+	for (int index = 1; index < nccomps; index++) {
+		cc_centroids_x = (int)centroids.at<double>(index, 0);
+		cc_centroids_y = (int)centroids.at<double>(index, 1);
+		cc_x = stats.at<int>(index, 0);
+		cc_y = stats.at<int>(index, 1);
+		cc_width = stats.at<int>(index, 2);
+		cc_height = stats.at<int>(index, 3);
+		cc_size = stats.at<int>(index, 4);
+
+		ratio = (double)cc_height / (double)cc_width;
+		pxielpercent = (double)cc_size / (double)(cc_height * cc_width);
+
+		if ((cc_width >= 20) &&
+			(cc_width <= 120) &&
+			(cc_height >= 20) &&
+			(cc_height <= 120) &&
+			(ratio >= 0.7) &&
+			(ratio <= 1.5) &&
+			(pxielpercent >= 0.5)
+			)
+		{
+			//Record the CC objects
+			ccObjecttmp.x = cc_x;
+			ccObjecttmp.y = cc_y;
+			ccObjecttmp.width = cc_width;
+			ccObjecttmp.height = cc_height;
+			ccObjecttmp.centroids_x = cc_centroids_x;
+			ccObjecttmp.centroids_y = cc_centroids_y;
+			ccObjecttmp.size = cc_size;
+
+			ccObjectList.push_back(ccObjecttmp);
+		}
+	}
+
+
+
+	//Check IC must have a CC object in the center, if not, determine it is empty.
+	//We check the max size cc object does it in the center.
+
+	ccObjectList.sort(list_compare);
+	ccObjectList.reverse();
+
+	ccObject ccObjecttmp2;
+	int x_diff, y_diff;
+	if (ccObjectList.size() == 2)
+	{
+		ccObjecttmp = ccObjectList.front();
+		cc_centroids_x = ccObjecttmp.centroids_x;
+		cc_centroids_y = ccObjecttmp.centroids_y;
+
+		if ((cc_centroids_x < (double)width * 0.3) ||
+			(cc_centroids_x >(double)width * 0.7) ||
+			(cc_centroids_y < (double)height * 0.3) ||
+			(cc_centroids_y >(double)height * 0.7)
+			)
+		{
+			return 0;
+		}
+
+		ccObjecttmp2 = ccObjectList.back();
+		x_diff = ccObjecttmp2.x - ccObjecttmp.x;
+		y_diff = ccObjecttmp2.y - ccObjecttmp.y;
+		if ((x_diff <= 0) && (y_diff <= 0))
+		{
+			return 1;
+		}
+		else if ((x_diff >= 0) && (y_diff <= 0))
+		{
+			return 2;
+		}
+		else if ((x_diff <= 0) && (y_diff >= 0))
+		{
+			return 3;
+		}
+		else
+		{
+			return 4;
+		}
+
+	}
+	else
+	{
+		return 0;
+	}
+
+}
+
+//Willy debug - e
+
 
 
 extern "C"
@@ -153,6 +315,8 @@ extern "C"
     return 0;
   }
 
+
+
   uint32_t xlnx_kernel_start (IVASKernel * handle, int start,
       IVASFrame * input[MAX_NUM_OBJECT], IVASFrame * output[MAX_NUM_OBJECT])
   {
@@ -164,58 +328,201 @@ extern "C"
 
     frameinfo->lumaImg.create (input[0]->props.height, input[0]->props.stride, CV_8U);
     frameinfo->lumaImg.data = (unsigned char *) lumaBuf;
-    GstInferenceMeta *infer_meta;
-    infer_meta = ((GstInferenceMeta *) gst_buffer_get_meta((GstBuffer *)frameinfo->inframe->app_priv,
-                                                                 gst_inference_meta_api_get_type()));
-    if (infer_meta == NULL) {
-        LOG_MESSAGE(LOG_LEVEL_INFO, "ivas meta data is not available for crop");
-        return FALSE;
-    }
-    uint32_t *mango_pixel, *defect_pixel;
-    GstInferencePrediction *root = infer_meta->prediction;
-    /* Iterate through the immediate child predictions */
-    GSList *tmp = gst_inference_prediction_get_children(root);
+	
+	//Willy debug - s
+	char text_buffer[512] = { 0, };
+	int y_point = kpriv->y_offset;
 
-    for (GSList *child_predictions = tmp; child_predictions; child_predictions = g_slist_next(child_predictions)) {
-        GstInferencePrediction *child = (GstInferencePrediction *)child_predictions->data;
-        mango_pixel = (uint32_t *)child->reserved_1;
-        defect_pixel = (uint32_t *)child->reserved_2;
-    }
 
-    double defect_density = ((double)*defect_pixel / *mango_pixel) * 100.0;
-    bool defect_decision = (defect_density > kpriv->defect_threshold);
+	//The origirnal input (lumaImg is gray already)
+	Mat img_gray = frameinfo->lumaImg.clone();
+	//cvtColor(frameinfo->lumaImg, img_gray, COLOR_BGR2GRAY);
 
-    char text_buffer[512] = {0,};
-    int y_point = kpriv->y_offset;
-    if (defect_decision) {
-        kpriv->total_defect++;
-    }
+	Mat img_binary;
+	threshold(img_gray, img_binary, 0, 255, THRESH_BINARY_INV | THRESH_OTSU);
 
-    LOG_MESSAGE (LOG_LEVEL_DEBUG, "Defect Density: %.2lf %%", defect_density);
-    sprintf(text_buffer, "Defect Density: %.2lf %%", defect_density);
-    LOG_MESSAGE (LOG_LEVEL_DEBUG, "text buffer : %s", text_buffer);
-    /* Draw label text on the filled rectanngle */
-    putText(frameinfo->lumaImg, text_buffer, cv::Point(kpriv->x_offset, y_point), kpriv->font,
-            kpriv->font_size, Scalar (255.0, 255.0, 255.0), 1, 1);
-    y_point += 30;
 
-    LOG_MESSAGE (LOG_LEVEL_DEBUG, "Is Defected: %s", defect_decision ? "Yes": "No");
-    sprintf(text_buffer, "Is Defected: %s", defect_decision ? "Yes": "No");
-    LOG_MESSAGE (LOG_LEVEL_DEBUG, "text buffer : %s", text_buffer);
-    /* Draw label text on the filled rectanngle */
-    putText(frameinfo->lumaImg, text_buffer, cv::Point(kpriv->x_offset, y_point), kpriv->font,
-            kpriv->font_size, Scalar (255.0, 255.0, 255.0), 1, 1);
-    y_point += 30;
+	Mat element = getStructuringElement(MORPH_RECT, Size(3, 3));
+	Mat img_dilate, img_erode;
 
-    if (kpriv->is_acc_result) {
-        LOG_MESSAGE (LOG_LEVEL_DEBUG, "Accumulated Defects: %u", kpriv->total_defect);
-        sprintf(text_buffer, "Accumulated defects: %u", kpriv->total_defect);
-        LOG_MESSAGE (LOG_LEVEL_DEBUG, "text buffer : %s", text_buffer);
-         /* Draw label text on the filled rectanngle */
-        putText(frameinfo->lumaImg, text_buffer, cv::Point(kpriv->x_offset, y_point), kpriv->font,
-                kpriv->font_size, Scalar (255.0, 255.0, 255.0), 1, 1);
-    }
-    g_slist_free(tmp);
+	dilate(img_binary, img_dilate, element, Point(-1, -1), 1);
+
+	erode(img_dilate, img_erode, element, Point(-1, -1), 1);
+
+
+	Mat img_target = img_dilate;
+
+	Mat labels, stats, centroids;
+
+	int nccomps = cv::connectedComponentsWithStats(
+		img_target,
+		labels,
+		stats,
+		centroids
+	);
+
+	LOG_MESSAGE(LOG_LEVEL_INFO, "CC objects: %d", nccomps);
+	sprintf(text_buffer, "CC objects: %d", nccomps);
+	putText(frameinfo->lumaImg, text_buffer, cv::Point(kpriv->x_offset, y_point), kpriv->font,
+		kpriv->font_size, Scalar(255.0, 255.0, 255.0), 1, 1);
+	y_point += 30;
+
+
+	int cc_size, cc_centroids_x, cc_centroids_y, cc_x, cc_y, cc_width, cc_height;
+
+
+	bool ic_found = false;
+	icObject icObjects[4];
+
+	for (int index = 1; index < nccomps; index++) {
+		cc_centroids_x = (int)centroids.at<double>(index, 0);
+		cc_centroids_y = (int)centroids.at<double>(index, 1);
+		cc_x = stats.at<int>(index, 0);
+		cc_y = stats.at<int>(index, 1);
+		cc_width = stats.at<int>(index, 2);
+		cc_height = stats.at<int>(index, 3);
+		cc_size = stats.at<int>(index, 4);
+
+		if ((cc_width >= 250) &&
+			(cc_width <= 350) &&
+			(cc_height >= 250) &&
+			(cc_height <= 350)
+			)
+		{
+			ic_found = true;
+
+			// Print the circle and rectangle for the CCs
+			cv::rectangle(frameinfo->lumaImg,
+				cv::Point(cc_x, cc_y),
+				cv::Point(cc_x + cc_width, cc_y + cc_height),
+				cv::Scalar(255, 255, 255),
+				2, 8, 0);
+
+
+			// Print the line for the 4 IC traps
+			cv::line(frameinfo->lumaImg,
+				cv::Point(cc_centroids_x, cc_y),
+				cv::Point(cc_centroids_x, cc_y + cc_height),
+				cv::Scalar(255, 255, 255),
+				2);
+			cv::line(frameinfo->lumaImg,
+				cv::Point(cc_x, cc_centroids_y),
+				cv::Point(cc_x + cc_width, cc_centroids_y),
+				cv::Scalar(255, 255, 255),
+				2);
+
+			// Seperate 4 IC blocks
+			// Top Left
+			icObjects[0].x = cc_x;
+			icObjects[0].y = cc_y;
+			icObjects[0].width = cc_width / 2;
+			icObjects[0].height = cc_height / 2;
+
+			// Top Right
+			icObjects[1].x = cc_x + cc_width / 2;
+			icObjects[1].y = cc_y;
+			icObjects[1].width = cc_width / 2;
+			icObjects[1].height = cc_height / 2;
+
+
+			// Button Left
+			icObjects[2].x = cc_x;
+			icObjects[2].y = cc_y + cc_height / 2;
+			icObjects[2].width = cc_width / 2;
+			icObjects[2].height = cc_height / 2;
+
+			// Button Right
+			icObjects[3].x = cc_x + cc_width / 2;
+			icObjects[3].y = cc_y + cc_height / 2;
+			icObjects[3].width = cc_width / 2;
+			icObjects[3].height = cc_height / 2;
+			break;
+		}
+	}
+
+
+	if (ic_found)
+	{
+
+		LOG_MESSAGE(LOG_LEVEL_INFO, "IC trap is found");
+		sprintf(text_buffer, "IC trap is found");
+		/* Draw label text on the filled rectanngle */
+		putText(frameinfo->lumaImg, text_buffer, cv::Point(kpriv->x_offset, y_point), kpriv->font,
+		kpriv->font_size, Scalar(255.0, 255.0, 255.0), 1, 1);
+
+		for (int index = 0; index < 4; index++)
+		{
+			int x = icObjects[index].x;
+			int y = icObjects[index].y;
+			int width = icObjects[index].width;
+			int height = icObjects[index].height;
+			int central_x = (width / 2) + x;
+			int central_y = (height / 2) + y;
+
+			Rect rect_ic(x, y, width, height);
+			Mat img_ic = Mat(img_gray, rect_ic);
+
+			int result = DetermineDirection(img_ic);
+
+
+			if (result == 0)
+			{
+				cv::line(frameinfo->lumaImg,
+					cv::Point(x, y),
+					cv::Point(x + width, y + height),
+					cv::Scalar(255, 255, 255),
+					2);
+				cv::line(frameinfo->lumaImg,
+					cv::Point(x, y + height),
+					cv::Point(x + width, y),
+					cv::Scalar(255, 255, 255),
+					2);
+			}
+			else if (result == 1)
+			{
+				cv::arrowedLine(frameinfo->lumaImg,
+					cv::Point(central_x, central_y),
+					cv::Point(x, y),
+					cv::Scalar(255, 255, 255),
+					2, 0, 0, 0.2);
+			}
+			else if (result == 2)
+			{
+				cv::arrowedLine(frameinfo->lumaImg,
+					cv::Point(central_x, central_y),
+					cv::Point(x + width, y),
+					cv::Scalar(255, 255, 255),
+					2, 0, 0, 0.2);
+			}
+			else if (result == 3)
+			{
+				cv::arrowedLine(frameinfo->lumaImg,
+					cv::Point(central_x, central_y),
+					cv::Point(x, y + height),
+					cv::Scalar(255, 255, 255),
+					2, 0, 0, 0.2);
+			}
+			else if (result == 4)
+			{
+				cv::arrowedLine(frameinfo->lumaImg,
+					cv::Point(central_x, central_y),
+					cv::Point(x + width, y + height),
+					cv::Scalar(255, 255, 255),
+					2, 0, 0, 0.2);
+			}
+
+		}
+	}
+	else
+	{
+		LOG_MESSAGE(LOG_LEVEL_INFO, "IC trap is not found");
+		sprintf(text_buffer, "IC trap is not found");
+		/* Draw label text on the filled rectanngle */
+		putText(frameinfo->lumaImg, text_buffer, cv::Point(kpriv->x_offset, y_point), kpriv->font,
+			kpriv->font_size, Scalar(255.0, 255.0, 255.0), 1, 1);
+	}
+
+	//Willy debug - e
 
     return 0;
   }

@@ -73,6 +73,18 @@ target_link_libraries(defect-test2
   gstreamer-1.0 gobject-2.0 glib-2.0 gstvideo-1.0 )
 install(TARGETS defect-test2 DESTINATION ${INSTALL_PATH}/bin)
 
+add_executable(show720p src/show720p.cpp)
+target_include_directories(show720p PRIVATE ${GSTREAMER_INCLUDE_DIRS})
+target_link_libraries(show720p
+  gstreamer-1.0 gobject-2.0 glib-2.0 gstvideo-1.0 )
+install(TARGETS show720p DESTINATION ${INSTALL_PATH}/bin)
+
+add_executable(detect720p src/detect720p.cpp)
+target_include_directories(detect720p PRIVATE ${GSTREAMER_INCLUDE_DIRS})
+target_link_libraries(detect720p
+  gstreamer-1.0 gobject-2.0 glib-2.0 gstvideo-1.0 )
+install(TARGETS detect720p DESTINATION ${INSTALL_PATH}/bin)
+
 
 install(FILES
     README

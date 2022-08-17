@@ -6,7 +6,7 @@
     {
       "library-name":"libivas_text2overlay.so",
       "config": {
-        "debug_level" : 1,
+        "debug_level" : 2,
         "font_size" : 1.0,
         "font" : 3,
         "x_offset" : 0,
