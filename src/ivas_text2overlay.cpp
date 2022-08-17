@@ -324,6 +324,9 @@ extern "C"
     struct overlayframe_info *frameinfo = &(kpriv->frameinfo);
     frameinfo->inframe = input[0];
 
+	LOG_MESSAGE(LOG_LEVEL_INFO, "input[0]=%p", input[0]);
+	LOG_MESSAGE(LOG_LEVEL_INFO, "output[0]=%p", output[0]);
+	
     char *lumaBuf = (char *) frameinfo->inframe->vaddr[0];
 
     frameinfo->lumaImg.create (input[0]->props.height, input[0]->props.stride, CV_8U);
