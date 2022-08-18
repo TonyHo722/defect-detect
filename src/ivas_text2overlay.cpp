@@ -325,7 +325,12 @@ extern "C"
     frameinfo->inframe = input[0];
 
 	LOG_MESSAGE(LOG_LEVEL_INFO, "input[0]=%p", input[0]);
-	LOG_MESSAGE(LOG_LEVEL_INFO, "output[0]=%p", output[0]);
+	if (output) {
+		LOG_MESSAGE(LOG_LEVEL_INFO, "output[0]=%p", output[0]);
+		}
+	else {
+		LOG_MESSAGE(LOG_LEVEL_INFO, "output is false");
+		}
 	
     char *lumaBuf = (char *) frameinfo->inframe->vaddr[0];
 

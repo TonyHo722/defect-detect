@@ -78,6 +78,18 @@ int32_t xlnx_kernel_start(IVASKernel *handle, int start, IVASFrame *input[MAX_NU
 
     LOG_MESSAGE (LOG_LEVEL_INFO, kernel_priv->log_level, "MAX_NUM_OBJECT = %d", MAX_NUM_OBJECT);
 
+    LOG_MESSAGE (LOG_LEVEL_INFO, kernel_priv->log_level, "&(input[0]->paddr[0]) address=%p", (void *)&(input[0]->paddr[0]));
+    LOG_MESSAGE (LOG_LEVEL_INFO, kernel_priv->log_level, "input[0]->paddr[0]=%lx", input[0]->paddr[0]);
+	if (output) {
+		LOG_MESSAGE(LOG_LEVEL_INFO,  kernel_priv->log_level, "&(output[0]->paddr[0]) address =%p", (void *)&(output[0]->paddr[0]));
+		LOG_MESSAGE(LOG_LEVEL_INFO,  kernel_priv->log_level, "output[0]->paddr[0] =%lx", output[0]->paddr[0]);
+		}
+	else {
+		LOG_MESSAGE(LOG_LEVEL_INFO, kernel_priv->log_level, "output is false");
+		
+		}
+
+
     ivas_register_write(handle, &(input[0]->paddr[0]), sizeof(uint64_t),         0x10);      /* Input buffer */
     ivas_register_write(handle, &(input[0]->props.height), sizeof(uint32_t),     0x28);      /* Rows */
     ivas_register_write(handle, &(input[0]->props.width), sizeof(uint32_t),      0x30);      /* Columns */
